@@ -38,7 +38,6 @@ func xlp(ctx context.Context) (err error) {
 	environs = append(environs, "SYNOPKG_PKGDEST="+SYNOPKG_PKGDEST)
 	environs = append(environs, "HOME="+dataDir)
 	environs = append(environs, "DriveListen="+fmt.Sprintf("unix://%s/var/pan-xunlei-com.sock", TARGET_DIR))
-	environs = append(environs, "PLATFORM="+SYNOPLATFORM)
 	environs = append(environs, "OS_VERSION="+fmt.Sprintf("%s dsm %s.%s-%s", SYNOPLATFORM, SYNOPKG_DSM_VERSION_MAJOR, SYNOPKG_DSM_VERSION_MINOR, SYNOPKG_DSM_VERSION_BUILD))
 	environs = append(environs, "DownloadPATH=/迅雷下载")
 
@@ -93,7 +92,8 @@ func xlp(ctx context.Context) (err error) {
 	if optPort < 0 {
 		optPort = 2345
 	}
-	go fakeWeb(ctx, environs, optPort)
+	bindAddr := os.Getenv(ENV_WEB_ADDRESS)
+	go fakeWeb(ctx, environs, bindAddr, optPort)
 
 	if err = c.Wait(); err != nil {
 		err = fmt.Errorf("[xlp] [启动器] 结束: %w", err)
@@ -103,7 +103,7 @@ func xlp(ctx context.Context) (err error) {
 	return
 }
 
-func fakeWeb(ctx context.Context, environs []string, port int) {
+func fakeWeb(ctx context.Context, environs []string, bindAddress string, port int) {
 	synoToken := []byte(fmt.Sprintf(`{"SynoToken":"syno_%s"}`, randText(24)))
 	login := http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 		rw.Header().Set("Content-Type", "application/json; charset=utf-8")
@@ -115,7 +115,6 @@ func fakeWeb(ctx context.Context, environs []string, port int) {
 			http.Redirect(rw, r, url, code)
 		}
 	}
-
 	mux := http.NewServeMux()
 	home := fmt.Sprintf("/webman/3rdparty/%s/index.cgi", SYNOPKG_PKGNAME)
 	mux.Handle("/webman/login.cgi", login)
@@ -131,9 +130,9 @@ func fakeWeb(ctx context.Context, environs []string, port int) {
 		indexCGI.Logger = log.Default()
 	}
 
-	mux.Handle(home+"/", indexCGI)
+	mux.Handle(home+"/", basicAuth(indexCGI))
 
-	s := &http.Server{Addr: fmt.Sprintf(":%d", port), Handler: mux}
+	s := &http.Server{Addr: fmt.Sprintf("%s:%d", bindAddress, port), Handler: mux}
 	go func() {
 		<-ctx.Done()
 		_ = s.Shutdown(context.Background())
@@ -208,4 +207,19 @@ func rChown(rootPath string, uid, gid int) {
 		}
 		return nil
 	})
+}
+
+func basicAuth(next http.Handler) http.Handler {
+	if u, p := os.Getenv("XL_BA_USER"), os.Getenv("XL_BA_PASSWORD"); u != "" && p != "" {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			user, pass, ok := r.BasicAuth()
+			if !ok || user != u || pass != p {
+				w.Header().Add("WWW-Authenticate", `Basic realm="xlp"`)
+				w.WriteHeader(401)
+			} else {
+				next.ServeHTTP(w, r)
+			}
+		})
+	}
+	return next
 }
