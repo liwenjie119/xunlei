@@ -22,7 +22,7 @@ RUN mkdir -p /rootfs/etc/ssl/certs \
 WORKDIR /spk
 
  COPY spk/*.spk ./
- RUN SYS_ARCH=$([ "${TARGETARCH}" = "amd64" ] && echo "x86_64" || echo "armv8") \
+ RUN SYS_ARCH=$([ "${TARGETARCH}" = "amd64" ] && echo "x86_64" || echo "armv8") &&MEM=1\
    && VER=$(ls | grep "${SYS_ARCH}" | grep -Eo "v[0-9]+.[0-9]+.[0-9]+" | sort -Vr | head -n1) \
    && NAME=$(ls | grep ${SYS_ARCH} | grep ${VER} | head -n1) \
    && mkdir -p /rootfs/var/packages/pan-xunlei-com/target \
