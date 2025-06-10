@@ -21,13 +21,13 @@ RUN mkdir -p /rootfs/etc/ssl/certs \
 
 WORKDIR /spk
 
-# COPY spk/*.spk ./
-# RUN SYS_ARCH=$([ "${TARGETARCH}" = "amd64" ] && echo "x86_64" || echo "armv8") \
-#   && VER=$(ls | grep "${SYS_ARCH}" | grep -Eo "v[0-9]+.[0-9]+.[0-9]+" | sort -Vr | head -n1) \
-#   && NAME=$(ls | grep ${SYS_ARCH} | grep ${VER} | head -n1) \
-#   && mkdir -p /rootfs/var/packages/pan-xunlei-com/target \
-#   && [ -f "${NAME}" ] && tar -Oxf ${NAME} package.tgz | tar -JxC /rootfs/var/packages/pan-xunlei-com/target --wildcards 'bin/bin/*' 'ui/index.cgi' \
-#   || exit 1
+ COPY spk/*.spk ./
+ RUN SYS_ARCH=$([ "${TARGETARCH}" = "amd64" ] && echo "x86_64" || echo "armv8") \
+   && VER=$(ls | grep "${SYS_ARCH}" | grep -Eo "v[0-9]+.[0-9]+.[0-9]+" | sort -Vr | head -n1) \
+   && NAME=$(ls | grep ${SYS_ARCH} | grep ${VER} | head -n1) \
+   && mkdir -p /rootfs/var/packages/pan-xunlei-com/target \
+   && [ -f "${NAME}" ] && tar -Oxf ${NAME} package.tgz | tar -JxC /rootfs/var/packages/pan-xunlei-com/target --wildcards 'bin/bin/*' 'ui/index.cgi' \
+   || exit 1
 
 COPY bin/xlp-${TARGETARCH} /rootfs/usr/bin/xlp
 
