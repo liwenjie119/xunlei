@@ -1,4 +1,4 @@
-FROM --platform=$BUILDPLATFORM ubuntu:focal AS temp
+FROM --platform=$BUILDPLATFORM ubuntu:latest AS temp
 ARG TARGETARCH
 
 RUN [ "${TARGETARCH}" = "arm64" -o "${TARGETARCH}" = "amd64" ] && echo ok || exit 1
@@ -31,7 +31,7 @@ WORKDIR /spk
 
 COPY bin/xlp-${TARGETARCH} /rootfs/usr/bin/xlp
 
-FROM ubuntu:focal
+FROM ubuntu:latest
 
 LABEL org.opencontainers.image.authors=cnk3x
 LABEL org.opencontainers.image.source=https://github.com/cnk3x/xunlei
